@@ -1,62 +1,67 @@
+require('dotenv').config()
 var express = require("express");
 var logger = require("morgan");
 var mongoose = require("mongoose");
-
-// Our scraping tools
-// Axios is a promised-based http library, similar to jQuery's Ajax method
-// It works on the client and on the server
 var axios = require("axios");
 var cheerio = require("cheerio");
-
+var app = express();
+var exphbs = require("express-handlebars");
 
 mongoose.Promise = Promise;
 
 // Require all models
 var db = require("./models");
 
-var PORT = 3000;
+var port = process.env.PORT || 3000;
 
 // Initialize Express
-var app = express();
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static("public"));
 
-// Configure middleware
+app.engine("handlebars", exphbs({ defaultLayout: "main" }));
+app.set("view engine", "handlebars");
 
 // Use morgan logger for logging requests
 app.use(logger("dev"));
-// Parse request body as JSON
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
-// Make public a static folder
-app.use(express.static("public"));
+
+
 
 // Connect to the Mongo DB
-mongoose.connect("mongodb://localhost/Mongo_Scrape", { useNewUrlParser: true });
+var databaseUri = "mongodb://localhost/Mongo_Scrape"
 
 if (process.env.MONGODB_URI) {
   mongoose.connect(process.env.MONGODB_URI)
-} else {
-  mongoose.connect(databaseUri);
-}
-// Routes
+ } else {
+   mongoose.connect(databaseUri);
+ }
 
-var db = mongoose.connection;
+var dbm = mongoose.connection;
 
-db.on('error', function(err) {
-  console.log('Mongoose Error: ', err);
+dbm.on('error', function(err) {
+   console.log('Mongoose Error: ', err);
+ });
+
+ dbm.once('open', function() {
+   console.log('Mongoose connection successful.');
+ });
+
+
+
+
+ app.get("/", function(req, res) {
+	db.Article.find({}, null, {sort: {created: -1}}, function(err, data) {
+			res.render("index", {articles: data});
+		});
 });
 
-db.once('open', function() {
-  console.log('Mongoose connection successful.');
-});
-
-// A GET route for scraping the echoJS website
 app.get("/scrape", function(req, res) {
-  // First, we grab the body of the html with axios
-  axios.get("https://physicstoday.scitation.org").then(function(response) {
-    // Then, we load that into cheerio and save it to $ for a shorthand selector
+
+  axios.get("https://physicstoday.scitation.org/toc/pto/current?").then(function(response) {
+   
     var $ = cheerio.load(response.data);
 
-    // Now, we grab every h2 within an article tag, and do the following:
+  
     $("article h2").each(function(i, element) {
       // Save an empty result object
       var result = {};
@@ -137,6 +142,6 @@ app.post("/articles/:id", function(req, res) {
 });
 
 //  server
-app.listen(PORT, function() {
-  console.log("App running on port " + PORT + "!");
+app.listen(port, function() {
+  console.log("App running on port " + port + "!");
 });

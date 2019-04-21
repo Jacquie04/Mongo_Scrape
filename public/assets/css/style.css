@@ -1,0 +1,15 @@
+
+.jumbotron {
+    background: none;
+    }
+
+.navbar-nav {
+    flex-flow: row;
+    margin-left:15px;
+    margin-right:15px;
+    align-content: space-around !important;
+}
+
+.navbar-nav .nav-link {
+    padding-left: 15px;
+}
