@@ -1,21 +1,36 @@
-  <div class="jumbotron">
-      <div class="text-center">
-          <h1>Science!</h1>
-          <h2>Check out all of the latest articles in the scientific community.</h2>
-      </div>
-<nav class="navbar navbar-dark bg-dark">
-   <a class="navbar-brand" href="#">Mongo Scrape</a>
+<div class="jumbotron">
+  <div class="text-center">
+    <h1>Science!</h1>
+    <h2>Check out all of the latest articles in the scientific community.</h2>
+  </div>
+  <nav class="navbar navbar-dark bg-dark">
+    <a class="navbar-brand" href="/">Mongo Scrape</a>
     <div class="navbar-nav mr-auto">
-      <a class="nav-item nav-link" href="#">Home <span class="sr-only">(current)</span></a>
-      <a class="nav-item nav-link" href="#">Saved Articles</a>
+      <a class="nav-item nav-link" href="/home">Home <span class="sr-only">(current)</span></a>
+      <a action="/notes" method="POST" id="savedArticles" class="nav-item nav-link" href="/saved">Saved Articles</a>
     </div>
-     <form class="form-inline">
-    <button id="scrapeBtn" class="btn btn-sm btn-outline-secondary" type="button">Scrape New Articles</button>
-  </form>
-</nav>
-    <div id="wrapper">
-      <h1>Article Scraper</h1>
-      <h2><i>Save or add a comment to an article!</i></h2>
-      <div id="articles"></div>
-      <div id="notes"></div>
+    <form class="form-inline" action="/scrape" method="GET">
+      <button id="scrapeBtn" class="btn btn-sm btn-outline-secondary" type="submit">Scrape New Articles</button>
+    </form>
+  </nav>
+  <div id="wrapper">
+    <h1>Article Scraper</h1>
+    <h2><i>Save or add a comment to an article!</i></h2>
+    <div id="articles"></div>
+    <div id="notes"></div>
+  </div>
+		
+  <div id="addnote">
+    <div id="note-displayer" class="text-center">
+      <h2>Note</h2>
+      <h3>Article: <span id="article-title"></span></h3>
+      <div id="note">
+        <label for="note-title">Title</label><br>
+        <input type="text" placeholder="Title" name="title" id="note-title"><br>
+        <label for="note-body">Note</label><br>
+        <textarea rows="7" placeholder="Note" id="note-body"></textarea><br>
+        <button type="submit" id="add-note">Save Note</button>
+        <button type="button" id="close-note">Cancel</button>
+      </div>
     </div>
+  </div>

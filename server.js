@@ -15,7 +15,7 @@ var db = require("./models");
 var port = process.env.PORT || 3000;
 
 // Initialize Express
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static("public"));
 
@@ -50,29 +50,45 @@ dbm.on('error', function(err) {
 
 
  app.get("/", function(req, res) {
-	db.Article.find({}, null, {sort: {created: -1}}, function(err, data) {
+	db.Article.find({"saved": false}, function(err, data) {
 			res.render("index", {articles: data});
-		});
-});
+		})
+  });
+  
+  app.get("/saved", function(req, res) {
+    // Grab every document in the Articles collection
+    db.Article.find({"saved": true})
+      .then(function(err, articles) {
+        res.render("index", {articles: data});
+      });
+  });
+
 
 app.get("/scrape", function(req, res) {
 
-  axios.get("https://physicstoday.scitation.org/toc/pto/current?").then(function(response) {
+  axios.get("http://www.echojs.com/").then(function(response) {
    
     var $ = cheerio.load(response.data);
 
-  
+    console.log("scraping log")
+    // console.log(response.data)
     $("article h2").each(function(i, element) {
       // Save an empty result object
       var result = {};
+      console.log("scraping in each")
+      console.log($(this).children().text());
 
       // Add the text and href of every link, and save them as properties of the result object
       result.title = $(this)
         .children("a")
-        .text();
+        .text().trim();
       result.link = $(this)
         .children("a")
         .attr("href");
+      result.summary = $(this)
+      .find("p.summary")
+      .text()
+      .trim();
 
       // Create a new Article using the `result` object built from scraping
       db.Article.create(result)
@@ -83,11 +99,13 @@ app.get("/scrape", function(req, res) {
         .catch(function(err) {
           // If an error occurred, log it
           console.log(err);
-        });
+        }); 
     });
 
     // Send a message to the client
-    res.send("Scrape Complete");
+    
+    res.send("scrape complete");
+    res.redirect("/articles");
   });
 });
 
@@ -122,7 +140,7 @@ app.get("/articles/:id", function(req, res) {
 });
 
 // Route for saving/updating an Article's associated Note
-app.post("/articles/:id", function(req, res) {
+app.post("/articles/save/:id", function(req, res) {
   // Create a new note and pass the req.body to the entry
   db.Note.create(req.body)
     .then(function(dbNote) {
@@ -139,6 +157,86 @@ app.post("/articles/:id", function(req, res) {
       // If an error occurred, send it to the client
       res.json(err);
     });
+});
+
+
+// Delete an article
+app.post("/articles/delete/:id", function(req, res) {
+  // Use the article id to find and update its saved boolean
+  db.Article.findOneAndUpdate({ "_id": req.params.id }, {"saved": false, "notes": []})
+  // Execute the above query
+  .exec(function(err, dbArticle) {
+    // Log any errors
+    if (err) {
+      console.log(err);
+    }
+    else {
+      // Or send the document to the browser
+      res.send(dbArticle);
+    }
+  });
+});
+
+
+// Create a new note
+app.post("/notes/save/:id", function(req, res) {
+// Create a new note and pass the req.body to the entry
+var newNote = new Note({
+body: req.body.text,
+article: req.params.id
+});
+console.log(req.body)
+// And save the new note the db
+newNote.save(function(error, note) {
+// Log any errors
+if (error) {
+  console.log(error);
+}
+// Otherwise
+else {
+  // Use the article id to find and update it's notes
+  db.Article.findOneAndUpdate({ "_id": req.params.id }, {$push: { "notes": note } })
+  // Execute the above query
+  .exec(function(err) {
+    // Log any errors
+    if (err) {
+      console.log(err);
+      res.send(err);
+    }
+    else {
+      // Or send the note to the browser
+      res.send(note);
+    }
+  });
+}
+});
+});
+
+// Delete a note
+app.delete("/notes/delete/:note_id/:article_id", function(req, res) {
+// Use the note id to find and delete it
+Note.findOneAndRemove({ "_id": req.params.note_id }, function(err) {
+// Log any errors
+if (err) {
+  console.log(err);
+  res.send(err);
+}
+else {
+  db.Article.findOneAndUpdate({ "_id": req.params.article_id }, {$pull: {"notes": req.params.note_id}})
+   // Execute the above query
+    .exec(function(err) {
+      // Log any errors
+      if (err) {
+        console.log(err);
+        res.send(err);
+      }
+      else {
+       
+        res.send("Deleted");
+      }
+    });
+}
+});
 });
 
 //  server
